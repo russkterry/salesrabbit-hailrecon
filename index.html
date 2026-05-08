@@ -354,43 +354,35 @@
 
 <script>
 // ─────────────────────────────────────────────────────────
-//  CONFIGURATION — update these two values before deploying
+//  CONFIGURATION
 // ─────────────────────────────────────────────────────────
-const HAILRECON_API_KEY = 'YOUR_API_KEY_HERE';
+const HAILRECON_API_KEY = '	69F48BFA-2925-4B14-8685-5906B4F36F88'; // ← paste your key here
+const HISTORY_MONTHS    = 60;                   // how far back to look (60 = 5 years)
 
-// ⚠️  Once you have your API docs confirmed, replace the function
-//     below with your real endpoint + response mapping.
-//     The shape shown here is a common pattern; adjust field names
-//     to match whatever the API actually returns.
-async function fetchHailHistory(address) {
-  const encoded = encodeURIComponent(address);
+// Fetch hail history using lat/lng passed directly from SalesRabbit
+async function fetchHailHistory(lat, lng) {
+  const url = `https://maps.interactivehailmaps.com/ExternalApi/ImpactDatesForLatLong`
+            + `?Lat=${lat}&Long=${lng}&Months=${HISTORY_MONTHS}&ApiKey=${HAILRECON_API_KEY}`;
 
-  // ── REPLACE THIS URL with the actual HailRecon endpoint ──
-  const url = `https://api.interactivehailmaps.com/v1/hail-history?address=${encoded}&api_key=${HAILRECON_API_KEY}`;
-
-  const res = await fetch(url, {
-    headers: {
-      // If the API uses a header-based key instead, swap the line above and use:
-      // 'Authorization': `Bearer ${HAILRECON_API_KEY}`,
-      'Accept': 'application/json'
-    }
-  });
-
-  if (!res.ok) throw new Error(`API error ${res.status}`);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`IHM API error ${res.status}`);
 
   const data = await res.json();
 
-  // ── NORMALISE the response into the shape this UI expects ──
-  // Adjust these field names to match the real API response.
-  // Expected output: array of { date, size, description }
-  //   date        – string, e.g. "2023-06-14"
-  //   size        – number in inches, e.g. 1.5
-  //   description – optional string
-  return (data.events || data.results || data || []).map(e => ({
-    date:        e.date       || e.event_date  || e.stormDate,
-    size:        parseFloat(e.hailSize || e.size || e.maxSize || 0),
-    description: e.description || e.notes || ''
-  }));
+  const raw = Array.isArray(data) ? data
+            : data.ImpactDates   || data.impactDates
+            || data.Events       || data.events
+            || data.Results      || data.results
+            || [];
+
+  return raw.map(e => {
+    if (typeof e === 'string') return { date: e, size: 0, description: '' };
+    return {
+      date:        e.Date        || e.date        || e.EventDate  || e.eventDate  || '',
+      size:        parseFloat(e.HailSize || e.hailSize || e.Size || e.size || e.MaxSize || 0),
+      description: e.Description || e.description || e.Notes || e.notes || ''
+    };
+  }).filter(e => e.date);
 }
 // ─────────────────────────────────────────────────────────
 
@@ -499,22 +491,25 @@ function render(events) {
 
 // ── Main ──
 async function main() {
+  const lat     = getParam('lat');
+  const lng     = getParam('lng');
   const address = buildAddress();
 
-  if (!address) {
-    showError('No address provided', 'Open this page from a SalesRabbit lead to auto-load the property address.');
+  if (!lat || !lng) {
+    showError('No location provided', 'Open this page from a SalesRabbit lead to auto-load the property location.');
     return;
   }
 
-  document.getElementById('addressDisplay').textContent = address;
-  document.getElementById('addressCard').style.display  = 'flex';
+  if (address) {
+    document.getElementById('addressDisplay').textContent = address;
+    document.getElementById('addressCard').style.display  = 'flex';
+  }
 
-  // Point the IHM button to their address search
-  const ihmUrl = `https://maps.interactivehailmaps.com/?address=${encodeURIComponent(address)}`;
-  document.getElementById('ihmBtn').href = ihmUrl;
+  // Point the IHM button to the exact coordinates
+  document.getElementById('ihmBtn').href =
+    `https://maps.interactivehailmaps.com/?address=${encodeURIComponent(address || `${lat},${lng}`)}`;
 
   if (HAILRECON_API_KEY === 'YOUR_API_KEY_HERE') {
-    // ── Dev / demo mode: show fake data so you can test the UI ──
     const fakeEvents = [
       { date: '2024-05-12', size: 1.75, description: 'Severe thunderstorm — golf ball sized hail' },
       { date: '2023-08-03', size: 1.00, description: 'Quarter-sized hail reported' },
@@ -526,11 +521,14 @@ async function main() {
   }
 
   try {
-    const events = await fetchHailHistory(address);
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out — API endpoint may not be configured yet')), 10000)
+    );
+    const events = await Promise.race([fetchHailHistory(lat, lng), timeout]);
     render(events);
   } catch (err) {
     console.error(err);
-    showError('Could not load hail data', err.message || 'Check your API key and network connection.');
+    showError('Could not load hail data', 'Use the button below to open Interactive Hail Maps directly.');
   }
 }
 
