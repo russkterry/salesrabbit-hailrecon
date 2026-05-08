@@ -247,9 +247,32 @@
     .no-events-msg  { font-size: 15px; font-weight: 600; color: var(--safe); }
     .no-events-sub  { font-size: 13px; color: var(--muted); margin-top: 6px; }
 
+    /* ── IHM button ── */
+    .ihm-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px 20px;
+      background: transparent;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      color: var(--ice-dim);
+      font-family: 'Barlow', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .ihm-btn:hover { background: #1e293b; border-color: var(--ice-dim); }
+    .ihm-btn-arrow { font-size: 16px; margin-left: auto; }
+
     /* ── footer ── */
     .footer {
-      margin-top: 32px;
+      margin-top: 24px;
       text-align: center;
       font-size: 11px;
       color: #334155;
@@ -317,6 +340,13 @@
     <div class="no-events-sub">This address has no recorded hail damage in the database.</div>
   </div>
 
+  <!-- Open in IHM button -->
+  <a id="ihmBtn" class="ihm-btn" href="https://maps.interactivehailmaps.com" target="_blank">
+    <span>🗺️</span>
+    <span>Open Full Map in Interactive Hail Maps</span>
+    <span class="ihm-btn-arrow">↗</span>
+  </a>
+
   <div class="footer">
     Data provided by <a href="https://www.interactivehailmaps.com" target="_blank">Interactive Hail Maps</a>
   </div>
@@ -326,7 +356,7 @@
 // ─────────────────────────────────────────────────────────
 //  CONFIGURATION — update these two values before deploying
 // ─────────────────────────────────────────────────────────
-const HAILRECON_API_KEY = 69F48BFA-2925-4B14-8685-5906B4F36F88';
+const HAILRECON_API_KEY = 'YOUR_API_KEY_HERE';
 
 // ⚠️  Once you have your API docs confirmed, replace the function
 //     below with your real endpoint + response mapping.
@@ -478,6 +508,10 @@ async function main() {
 
   document.getElementById('addressDisplay').textContent = address;
   document.getElementById('addressCard').style.display  = 'flex';
+
+  // Point the IHM button to their address search
+  const ihmUrl = `https://maps.interactivehailmaps.com/?address=${encodeURIComponent(address)}`;
+  document.getElementById('ihmBtn').href = ihmUrl;
 
   if (HAILRECON_API_KEY === 'YOUR_API_KEY_HERE') {
     // ── Dev / demo mode: show fake data so you can test the UI ──
