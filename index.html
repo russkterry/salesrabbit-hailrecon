@@ -341,9 +341,9 @@
   </div>
 
   <!-- Open in IHM button -->
-  <a id="ihmBtn" class="ihm-btn" href="#" onclick="openHailRecon(event)">
-    <span>📱</span>
-    <span>Open in Hail Recon App</span>
+  <a id="ihmBtn" class="ihm-btn" href="https://maps.interactivehailmaps.com" target="_blank">
+    <span>🗺️</span>
+    <span>Open Full Map in Interactive Hail Maps</span>
     <span class="ihm-btn-arrow">↗</span>
   </a>
 
@@ -386,26 +386,7 @@ async function fetchHailHistory(lat, lng) {
 }
 // ─────────────────────────────────────────────────────────
 
-// ── Smart app launcher ──
-// Tries to open Hail Recon natively; falls back to the website after 1.5s
-let _ihmWebUrl = 'https://maps.interactivehailmaps.com';
-
-function openHailRecon(e) {
-  e.preventDefault();
-
-  // Attempt to open the native app via its URL scheme
-  // If the scheme isn't registered (app not installed), nothing happens
-  // and the timeout below redirects to the website instead.
-  const appScheme = 'hailrecon://';
-  window.location = appScheme;
-
-  // After 1.5s, if we're still here the app didn't open → go to web
-  setTimeout(() => {
-    window.open(_ihmWebUrl, '_blank');
-  }, 1500);
-}
-
-
+// ── Parse SalesRabbit URL parameters ──
 function getParam(name) {
   return new URLSearchParams(window.location.search).get(name) || '';
 }
@@ -524,8 +505,9 @@ async function main() {
     document.getElementById('addressCard').style.display  = 'flex';
   }
 
-  // Point the IHM fallback URL to their address search
-  _ihmWebUrl = `https://maps.interactivehailmaps.com/?address=${encodeURIComponent(address || `${lat},${lng}`)}`;
+  // Point the IHM button to the exact coordinates
+  document.getElementById('ihmBtn').href =
+    `https://maps.interactivehailmaps.com/?address=${encodeURIComponent(address || `${lat},${lng}`)}`;
 
   if (HAILRECON_API_KEY === 'YOUR_API_KEY_HERE') {
     const fakeEvents = [
